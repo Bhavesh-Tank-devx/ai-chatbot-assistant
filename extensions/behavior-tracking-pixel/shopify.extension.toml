@@ -1,0 +1,10 @@
+name = "behavior-tracking-pixel"
+type = "web_pixel_extension"
+uid = "cba9657b-5abd-617d-ccd5-853639f7806bc868f2d6"
+
+runtime_context = "strict"
+
+[settings]
+type = "object"
+
+[settings.fields]
