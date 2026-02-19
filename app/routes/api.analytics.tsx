@@ -33,14 +33,37 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const { eventName, timestamp, shopDomain, sessionId, data } = payload;
 
-    // Log the event (in production, you'd send this to Redis/Database/Analytics service)
-    console.log("[Analytics Event]", {
+    // Enhanced logging with quantity and engagement details
+    const logData: any = {
       eventName,
       timestamp,
       shopDomain,
       sessionId,
-      dataPreview: JSON.stringify(data).substring(0, 100),
-    });
+    };
+
+    // Add specific details based on event type
+    if (
+      eventName === "product_added_to_cart" ||
+      eventName === "product_removed_from_cart"
+    ) {
+      logData.quantity = data.quantity;
+      logData.product = data.productTitle;
+      logData.action =
+        eventName === "product_added_to_cart"
+          ? `+${data.quantity}`
+          : `-${data.quantity}`;
+    } else if (eventName === "product_dwell_time") {
+      logData.dwellTimeSeconds = data.dwellTimeSeconds;
+      logData.engagement = data.engagementLevel;
+    } else if (eventName === "product_viewed") {
+      logData.product = data.productTitle;
+      logData.price = data.price;
+    }
+
+    // Add truncated data preview
+    logData.dataPreview = JSON.stringify(data).substring(0, 100);
+
+    console.log("[Analytics Event]", logData);
 
     // TODO: Send to your backend pipeline
     // Example:

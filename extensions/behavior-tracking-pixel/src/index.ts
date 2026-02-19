@@ -19,6 +19,10 @@ register(async ({ analytics, browser, init }) => {
     await browser.cookie.set('ai_chatbot_session_id', sessionId);
   }
 
+  // Track product view dwell time
+  let productViewStartTime: number | null = null;
+  let currentProductId: string | null = null;
+
   /**
    * Send event to backend API
    * Using keepalive: true to ensure requests complete even if user navigates away
@@ -27,7 +31,7 @@ register(async ({ analytics, browser, init }) => {
     try {
       // In development, use the Cloudflare tunnel URL
       // In production, this would be your app's actual domain
-      const endpoint = 'https://pushed-relationship-brighton-bands.trycloudflare.com/api/analytics';
+      const endpoint = 'https://favorite-cake-camel-anyway.trycloudflare.com/api/analytics';
       
       fetch(endpoint, {
         method: 'POST',
@@ -48,8 +52,33 @@ register(async ({ analytics, browser, init }) => {
   /**
    * Subscribe to product_viewed event
    * Triggered when a customer views a product detail page
+   * Also tracks dwell time to measure engagement
    */
   analytics.subscribe('product_viewed', (event) => {
+    const productId = event.data?.productVariant?.product?.id;
+    
+    // If viewing a different product, send dwell time for previous product
+    if (currentProductId && currentProductId !== productId && productViewStartTime) {
+      const dwellTime = Date.now() - productViewStartTime;
+      if (dwellTime > 1000) { // Only track if viewed for more than 1 second
+        sendEvent({
+          eventName: 'product_dwell_time',
+          timestamp: new Date().toISOString(),
+          shopDomain,
+          sessionId,
+          data: {
+            productId: currentProductId,
+            dwellTimeSeconds: Math.round(dwellTime / 1000),
+            engagementLevel: dwellTime > 30000 ? 'high' : dwellTime > 10000 ? 'medium' : 'low',
+          },
+        });
+      }
+    }
+    
+    // Start tracking new product view
+    currentProductId = productId || null;
+    productViewStartTime = Date.now();
+    
     sendEvent({
       eventName: 'product_viewed',
       timestamp: new Date().toISOString(),
