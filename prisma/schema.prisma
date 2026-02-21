@@ -32,3 +32,12 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+/// Persists the Shopify Web Pixel GID per shop so we can update it without
+/// having to list all pixels (the webPixels plural query doesn't exist).
+model WebPixelConfig {
+  shop       String   @id
+  pixelId    String
+  appUrl     String
+  updatedAt  DateTime @updatedAt
+}

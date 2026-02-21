@@ -1,5 +1,8 @@
 import type { ActionFunctionArgs } from "react-router";
 
+// URL of the chatbot Gateway service that processes behavior events
+const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:3000";
+
 /**
  * API endpoint to receive customer behavior events from the Web Pixel extension
  *
@@ -52,6 +55,10 @@ export async function action({ request }: ActionFunctionArgs) {
         eventName === "product_added_to_cart"
           ? `+${data.quantity}`
           : `-${data.quantity}`;
+    } else if (eventName === "cart_viewed") {
+      logData.lineItemCount = data.lineItemCount; // distinct products
+      logData.totalQuantity = data.totalQuantity; // total units in cart
+      logData.totalPrice = data.totalPrice;
     } else if (eventName === "product_dwell_time") {
       logData.dwellTimeSeconds = data.dwellTimeSeconds;
       logData.engagement = data.engagementLevel;
@@ -65,14 +72,22 @@ export async function action({ request }: ActionFunctionArgs) {
 
     console.log("[Analytics Event]", logData);
 
-    // TODO: Send to your backend pipeline
-    // Example:
-    // - Push to Redis Pub/Sub
-    // - Store in database
-    // - Send to AWS Bedrock for processing
-    // - Update session context for AI chatbot
+    // Forward event to the chatbot Gateway for session context enrichment.
+    // Fire-and-forget so we never block the Shopify pixel response.
+    fetch(`${GATEWAY_URL}/shopify/behavior`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventName,
+        timestamp,
+        shopDomain,
+        sessionId,
+        data,
+      }),
+    }).catch((err) => {
+      console.error("[Analytics] Failed to forward event to Gateway:", err);
+    });
 
-    // For now, just acknowledge receipt
     return new Response(
       JSON.stringify({ success: true, message: "Event received" }),
       {

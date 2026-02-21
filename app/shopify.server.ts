@@ -6,6 +6,7 @@ import {
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
+import { ensurePixelSettings } from "./pixel.server";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -18,6 +19,17 @@ const shopify = shopifyApp({
   distribution: AppDistribution.AppStore,
   future: {
     expiringOfflineAccessTokens: true,
+  },
+  hooks: {
+    /**
+     * afterAuth fires after every successful OAuth flow:
+     * fresh installs, re-auths, and token refreshes.
+     * We use it to auto-create/update the web pixel so no
+     * manual admin page visit is ever required.
+     */
+    afterAuth: async ({ admin, session }) => {
+      await ensurePixelSettings(admin, session.shop);
+    },
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }

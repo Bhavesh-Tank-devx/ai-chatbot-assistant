@@ -8,7 +8,7 @@ interface BehaviorEventPayload {
   data: any;
 }
 
-register(async ({ analytics, browser, init }) => {
+register(async ({ analytics, browser, init, settings }) => {
   // Get shop domain from init context
   const shopDomain = init.context?.document?.location?.hostname || 'unknown';
   
@@ -23,6 +23,14 @@ register(async ({ analytics, browser, init }) => {
   let productViewStartTime: number | null = null;
   let currentProductId: string | null = null;
 
+  // `settings` is injected by Shopify from the webPixelCreate mutation (app.activate-pixel.tsx).
+  // It contains `appUrl` — the Cloudflare tunnel/production URL — so the pixel always
+  // sends events to the correct host without any hardcoding in the extension code.
+  const appUrl: string =
+    settings?.appUrl ||
+    'https://california-worcester-gnome-via.trycloudflare.com';
+  const analyticsEndpoint = `${appUrl}/api/analytics`;
+
   /**
    * Send event to backend API
    * Using keepalive: true to ensure requests complete even if user navigates away
@@ -31,7 +39,7 @@ register(async ({ analytics, browser, init }) => {
     try {
       // In development, use the Cloudflare tunnel URL
       // In production, this would be your app's actual domain
-      const endpoint = 'https://favorite-cake-camel-anyway.trycloudflare.com/api/analytics';
+      const endpoint = analyticsEndpoint;
       
       fetch(endpoint, {
         method: 'POST',
@@ -117,6 +125,9 @@ register(async ({ analytics, browser, init }) => {
    * Triggered when a customer views their cart
    */
   analytics.subscribe('cart_viewed', (event) => {
+    const lines: any[] = event.data?.cart?.lines ?? [];
+    const totalQuantity = lines.reduce((sum: number, line: any) => sum + (line.quantity ?? 0), 0);
+
     sendEvent({
       eventName: 'cart_viewed',
       timestamp: new Date().toISOString(),
@@ -126,7 +137,8 @@ register(async ({ analytics, browser, init }) => {
         cartId: event.data?.cart?.id,
         totalPrice: event.data?.cart?.cost?.totalAmount?.amount,
         currency: event.data?.cart?.cost?.totalAmount?.currencyCode,
-        lineItemCount: event.data?.cart?.lines?.length || 0,
+        lineItemCount: lines.length,       // number of distinct products
+        totalQuantity,                     // total units across all line items
       },
     });
   });

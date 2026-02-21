@@ -9,6 +9,13 @@ import { authenticate } from "../shopify.server";
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
 
+  // The app URL is injected into the pixel's init.settings so the pixel
+  // always knows which host to POST events to — no hardcoding needed.
+  const appUrl =
+    process.env.SHOPIFY_APP_URL ||
+    process.env.HOST ||
+    "https://california-worcester-gnome-via.trycloudflare.com";
+
   try {
     // GraphQL mutation to create/activate the web pixel
     const response = await admin.graphql(
@@ -28,7 +35,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       {
         variables: {
           webPixel: {
-            settings: {}, // Empty settings object since we have no required fields
+            settings: JSON.stringify({ appUrl }),
           },
         },
       },
