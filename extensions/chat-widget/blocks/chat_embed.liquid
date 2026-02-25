@@ -1,0 +1,169 @@
+<div id="ai-chat-widget-container" class="closed">
+  <div id="chat-header">Support Chat</div>
+  <div id="chat-messages"></div>
+  <div id="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Type a message..." />
+    <button id="send-btn">Send</button>
+  </div>
+</div>
+
+<style>
+  /* Basic styling for testing */
+  #ai-chat-widget-container { position: fixed; bottom: 20px; right: 20px; z-index: 99999; background: white; border: 1px solid #ccc; width: 300px; height: 400px; display: flex; flex-direction: column; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px;}
+  #ai-chat-widget-container.closed { display: none; }
+  #chat-header { background: #000; color: #fff; padding: 10px; font-weight: bold; border-top-left-radius: 8px; border-top-right-radius: 8px;}
+  #chat-messages { flex-grow: 1; padding: 10px; overflow-y: auto; }
+  #chat-input-area { display: flex; border-top: 1px solid #ccc; }
+  #chat-input { flex-grow: 1; padding: 10px; border: none; outline: none; border-bottom-left-radius: 8px; }
+  #send-btn { background: #000; color: white; border: none; padding: 0 15px; cursor: pointer; border-bottom-right-radius: 8px; }
+  .user-msg { text-align: right; background: #e0f7fa; padding: 5px; margin: 5px; border-radius: 5px;}
+  .bot-msg { text-align: left; background: #f1f1f1; padding: 5px; margin: 5px; border-radius: 5px;}
+</style>
+
+<script>
+  // Setup session IDs and UI elements
+  document.getElementById('ai-chat-widget-container').classList.remove('closed');
+
+  const chatMessages = document.getElementById('chat-messages');
+  const chatInput = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+
+  // Simple Session ID generator
+  let sessionId = sessionStorage.getItem('chat_session_id');
+  if (!sessionId) {
+    sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    sessionStorage.setItem('chat_session_id', sessionId);
+  }
+  const userId = 'anonymous_user';
+
+  // Config: Set your actual WS URL here if deploying
+  // Example: wss://abc-123.ngrok-free.app/ws (Must match local Gateway server)
+  const WS_URL = 'wss://redressable-spectrochemical-aarav.ngrok-free.dev/ws';
+
+  let ws = null;
+  let currentBotMessageDiv = null;
+
+  function connectWebSocket() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      console.log('Connected to Chatbot Server');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Handle streaming text chunks
+        if (data.type === 'bot_text_delta') {
+          if (!currentBotMessageDiv) {
+             currentBotMessageDiv = appendMessage('', 'bot');
+          }
+          currentBotMessageDiv.innerText += data.payload.delta;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Handle product cards
+        if (data.type === 'bot_cards' && data.payload.cards && data.payload.cards.length > 0) {
+          appendProductCards(data.payload.cards);
+        }
+
+        // Handle end of turn
+        if (data.type === 'bot_done') {
+          currentBotMessageDiv = null; // Reset for next message
+        }
+
+        if (data.type === 'bot_error') {
+           appendMessage('Server: ' + data.payload.message, 'bot');
+           currentBotMessageDiv = null;
+        }
+
+      } catch (err) {
+        console.error('Error parsing WS message:', err);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('Disconnected from Chatbot Server. Reconnecting...');
+      setTimeout(connectWebSocket, 3000);
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket Error:', error);
+    };
+  }
+
+  // Initialize Connection
+  connectWebSocket();
+
+  function appendMessage(text, sender) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = sender === 'user' ? 'user-msg' : 'bot-msg';
+    msgDiv.innerText = text;
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return msgDiv;
+  }
+
+  function appendProductCards(cards) {
+    const containerDiv = document.createElement('div');
+    containerDiv.className = 'bot-msg';
+    
+    let html = '<strong>Recommended for you:</strong><br/>';
+    cards.forEach(card => {
+       html += `
+         <div style="border:1px solid #ddd; padding: 5px; margin-top:5px; border-radius:5px;">
+           <img src="${card.image_url}" alt="${card.title}" style="max-width: 100%; height: auto; border-radius: 4px;" />
+           <div style="font-weight: bold; margin-top:5px;">${card.title}</div>
+           <div>${card.currency} ${card.price}</div>
+           ${card.color ? `<div style="font-size: 0.8em; color: #666;">Color: ${card.color}</div>` : ''}
+         </div>
+       `;
+    });
+    
+    containerDiv.innerHTML = html;
+    chatMessages.appendChild(containerDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  sendBtn.addEventListener('click', () => {
+    const message = chatInput.value.trim();
+    if (!message) return;
+
+    // Show user message
+    appendMessage(message, 'user');
+    chatInput.value = '';
+
+    // Send payload to backend
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'user_message',
+        session_id: sessionId,
+        user_id: userId,
+        route: 'BEDROCK',
+        text: message
+      }));
+    } else {
+      appendMessage("Not connected to server. Attempting to reconnect...", 'bot');
+      connectWebSocket();
+    }
+  });
+
+  chatInput.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+      sendBtn.click();
+    }
+  });
+</script>
+
+{% schema %}
+{
+  "name": "AI Chatbot Widget",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}
