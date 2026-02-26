@@ -239,6 +239,7 @@
     flex-grow: 1;
     padding: 24px;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -313,67 +314,82 @@
   .cx-carousel {
     display: flex;
     overflow-x: auto;
+    overflow-y: visible; /* Prevent cutting off shadows/hover effects */
     gap: 12px;
-    padding-bottom: 8px;
+    padding: 12px 0;
     margin-top: 8px;
     margin-left: 32px; /* align with bot message text */
     max-width: calc(100% - 32px);
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    min-height: 350px;
+    align-items: stretch;
   }
   .cx-carousel::-webkit-scrollbar {
     display: none;
   }
   .cx-card {
-    flex: 0 0 160px;
+    flex: 0 0 200px; /* Explicit width to prevent shrinking */
+    width: 200px;
+    height: 340px;
     background: var(--cx-bg);
     border: 1px solid var(--cx-border);
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
     scroll-snap-align: start;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     text-decoration: none;
     display: flex;
     flex-direction: column;
     cursor: pointer;
   }
   .cx-card:hover {
+    transform: translateY(-4px); /* Slight lift on hover */
     border-color: var(--cx-brand);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
   }
   .cx-card-img {
     width: 100%;
-    height: 160px;
+    height: 180px; /* Slightly taller image */
     object-fit: cover;
     background: var(--cx-gray-bg);
+    display: block;
+    flex-shrink: 0;
   }
   .cx-card-body {
     padding: 12px;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+    min-height: 140px; /* Ensure content area has enough space */
+    height: auto;
   }
   .cx-card-title {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--cx-text);
-    margin: 0 0 4px 0;
+    margin: 0 0 6px 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    line-height: 1.3;
   }
   .cx-card-price {
     font-size: 14px;
-    font-weight: 600;
-    color: var(--cx-text);
+    font-weight: 700;
+    color: var(--cx-brand);
+    margin-bottom: 8px;
     margin-top: auto;
   }
   .cx-card-badges {
     display: flex;
     gap: 4px;
-    margin-top: 6px;
     flex-wrap: wrap;
+    margin-top: auto;
+    max-height: 60px;
+    overflow: hidden;
   }
   .cx-badge {
     font-size: 10px;
@@ -741,39 +757,47 @@
     }
 
     function appendProductCarousel(cards) {
+      console.log('[ChatX] appendProductCarousel called with:', cards);
       const carousel = document.createElement('div');
       carousel.className = 'cx-carousel';
       carousel.style.animation = 'cx-slide-up 0.5s ease forwards';
       
       let html = '';
-      cards.forEach(card => {
-        // Handle might be used for link
-        const link = card.handle ? `/products/${card.handle}` : '#';
-        const imgUrl = card.imageUrl || card.image_url || '';
+      cards.forEach((card, i) => {
+        console.log(`[ChatX] Processing card ${i}:`, card);
+        // Fallback checks tailored to the BotCard typescript interface + previous version checks
+        const link = card.product_url ? card.product_url : (card.handle ? `/products/${card.handle}` : '#');
+        const imgUrl = card.image_url || card.imageUrl || '';
         
+        // Ensure price handles 0 correctly
         let priceStr = '';
-        if (card.variants && card.variants.length > 0 && card.variants[0].price) {
+        if (card.variants && card.variants.length > 0 && card.variants[0].price !== undefined) {
            priceStr = `$${card.variants[0].price}`;
-        } else if (card.price) {
-           priceStr = card.currency ? `${card.currency}${card.price}` : `$${card.price}`;
+        } else if (card.price !== undefined) {
+           priceStr = card.currency ? `${card.currency} ${card.price}` : `$${card.price}`;
         }
 
         let tagsHtml = '';
-        if (card.productType) {
-           tagsHtml += `<span class="cx-badge">${card.productType}</span>`;
+        if (card.badges && Array.isArray(card.badges)) {
+           card.badges.forEach(b => tagsHtml += `<span class="cx-badge">${b}</span>`);
+        } else {
+           // Fallbacks
+           if (card.productType) tagsHtml += `<span class="cx-badge">${card.productType}</span>`;
+           if (card.color) tagsHtml += `<span class="cx-badge">${card.color}</span>`;
+           if (card.tags && Array.isArray(card.tags)) card.tags.forEach(t => tagsHtml += `<span class="cx-badge">${t}</span>`);
         }
-        if (card.color) {
-           tagsHtml += `<span class="cx-badge">${card.color}</span>`;
+        
+        if (card.is_stretch_budget) {
+           tagsHtml += `<span class="cx-badge" style="background:#fef08a;color:#854d0e;">Over Budget</span>`;
         }
-        if (card.tags && Array.isArray(card.tags)) {
-           card.tags.forEach(t => tagsHtml += `<span class="cx-badge">${t}</span>`);
-        }
+
+        const title = card.title || 'Recommended Item';
 
         html += `
           <a href="${link}" target="_blank" class="cx-card">
-            <img class="cx-card-img" src="${imgUrl}" alt="${card.title}" loading="lazy" />
+            <img class="cx-card-img" src="${imgUrl}" alt="${title}" loading="lazy" onerror="this.src='https://cdn.shopify.com/s/images/admin/no-image-large.gif';" />
             <div class="cx-card-body">
-              <h3 class="cx-card-title">${card.title}</h3>
+              <h3 class="cx-card-title">${title}</h3>
               <div class="cx-card-price">${priceStr}</div>
               <div class="cx-card-badges">${tagsHtml}</div>
             </div>
@@ -781,8 +805,10 @@
         `;
       });
       
+      console.log('[ChatX] Generated HTML string for carousel:', html);
       carousel.innerHTML = html;
       messagesContainer.appendChild(carousel);
+      scrollToBottom();
     }
 
     // Quick Replies Binding
