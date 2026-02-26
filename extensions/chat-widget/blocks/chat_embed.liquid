@@ -1,169 +1,860 @@
-<div id="ai-chat-widget-container" class="closed">
-  <div id="chat-header">Support Chat</div>
-  <div id="chat-messages"></div>
-  <div id="chat-input-area">
-    <input type="text" id="chat-input" placeholder="Type a message..." />
-    <button id="send-btn">Send</button>
+<div id="cx-app" style="--cx-brand: #6b21a8; --cx-brand-light: #f3e8ff; --cx-brand-hover: #581c87; --cx-bg: #ffffff; --cx-text: #1a1a1a; --cx-text-muted: #6b7280; --cx-gray-bg: #f3f4f6; --cx-border: #e5e7eb;">
+  
+  <!-- Trigger Button -->
+  <button id="cx-trigger" class="cx-trigger" aria-label="Open AI Shopping Assistant">
+    <div class="cx-trigger-icon">
+      <svg class="cx-sparkle-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+      </svg>
+      <svg class="cx-close-icon cx-hidden" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </div>
+  </button>
+
+  <!-- Chat Widget (Floating Panel / Bottom Sheet) -->
+  <div id="cx-widget" class="cx-widget cx-closed">
+    
+    <!-- Header -->
+    <div class="cx-header">
+      <div class="cx-header-left">
+        <div class="cx-avatar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+          </svg>
+        </div>
+        <div class="cx-title-container">
+          <h2 class="cx-title">ChatX</h2>
+          <span class="cx-subtitle">AI Shopping Assistant</span>
+        </div>
+      </div>
+      <button id="cx-close" class="cx-close" aria-label="Close Chat">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Messages Area -->
+    <div id="cx-messages" class="cx-messages">
+      <!-- Welcome Message -->
+      <div class="cx-msg-row cx-msg-bot">
+        <div class="cx-msg-avatar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+          </svg>
+        </div>
+        <div class="cx-bubble">
+          <p>Hi there! 👋 I'm your AI Shopping Assistant. How can I help you find the perfect item today?</p>
+        </div>
+      </div>
+      
+      <!-- Quick Replies Initial Example (Dynamic setup later) -->
+      <div class="cx-quick-replies" id="cx-initial-quick-replies">
+         <button class="cx-chip">Browse Tops</button>
+         <button class="cx-chip">Track Order</button>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="cx-footer">
+      <div id="cx-typing" class="cx-typing cx-hidden">
+        <span>AI is typing</span>
+        <div class="cx-dots">
+          <div class="cx-dot"></div>
+          <div class="cx-dot"></div>
+          <div class="cx-dot"></div>
+        </div>
+      </div>
+      
+      <form id="cx-form" class="cx-input-wrapper">
+        <input type="text" id="cx-input" class="cx-input" placeholder="Ask anything..." autocomplete="off" />
+        <button type="submit" id="cx-send" class="cx-send" aria-label="Send message" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+      <div class="cx-powered-by">Powered by Devx</div>
+    </div>
+
   </div>
 </div>
 
 <style>
-  /* Basic styling for testing */
-  #ai-chat-widget-container { position: fixed; bottom: 20px; right: 20px; z-index: 99999; background: white; border: 1px solid #ccc; width: 300px; height: 400px; display: flex; flex-direction: column; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px;}
-  #ai-chat-widget-container.closed { display: none; }
-  #chat-header { background: #000; color: #fff; padding: 10px; font-weight: bold; border-top-left-radius: 8px; border-top-right-radius: 8px;}
-  #chat-messages { flex-grow: 1; padding: 10px; overflow-y: auto; }
-  #chat-input-area { display: flex; border-top: 1px solid #ccc; }
-  #chat-input { flex-grow: 1; padding: 10px; border: none; outline: none; border-bottom-left-radius: 8px; }
-  #send-btn { background: #000; color: white; border: none; padding: 0 15px; cursor: pointer; border-bottom-right-radius: 8px; }
-  .user-msg { text-align: right; background: #e0f7fa; padding: 5px; margin: 5px; border-radius: 5px;}
-  .bot-msg { text-align: left; background: #f1f1f1; padding: 5px; margin: 5px; border-radius: 5px;}
+  /* Import Modern Font */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+  /* Core Reset & Variables within App container to prevent leaking */
+  #cx-app {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    box-sizing: border-box;
+  }
+  #cx-app *, #cx-app *::before, #cx-app *::after {
+    box-sizing: inherit;
+  }
+
+  .cx-hidden {
+    display: none !important;
+  }
+
+  /* Trigger Button */
+  .cx-trigger {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 60px;
+    height: 60px;
+    border-radius: 30px;
+    background-color: var(--cx-brand);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(107, 33, 168, 0.4), 0 10px 30px rgba(0,0,0,0.1);
+    z-index: 999998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+  }
+  .cx-trigger:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(107, 33, 168, 0.5), 0 15px 35px rgba(0,0,0,0.15);
+  }
+  .cx-trigger-icon {
+    position: relative;
+    width: 24px;
+    height: 24px;
+  }
+  .cx-trigger-icon svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .cx-trigger.cx-active .cx-sparkle-icon {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(45deg) scale(0.5);
+  }
+  .cx-trigger:not(.cx-active) .cx-close-icon {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-45deg) scale(0.5);
+  }
+  
+  /* Widget Container Desktop */
+  .cx-widget {
+    position: fixed;
+    bottom: 100px;
+    right: 24px;
+    width: 380px;
+    height: 650px;
+    max-height: calc(100vh - 120px);
+    background: var(--cx-bg);
+    border-radius: 24px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05);
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform-origin: bottom right;
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.4s;
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    visibility: visible;
+  }
+  .cx-widget.cx-closed {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* Header */
+  .cx-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: var(--cx-bg);
+    border-bottom: 1px solid var(--cx-border);
+    flex-shrink: 0;
+  }
+  .cx-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cx-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: var(--cx-brand-light);
+    color: var(--cx-brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cx-title-container {
+    display: flex;
+    flex-direction: column;
+  }
+  .cx-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cx-text);
+    line-height: 1.2;
+  }
+  .cx-subtitle {
+    font-size: 12px;
+    color: var(--cx-text-muted);
+    font-weight: 500;
+  }
+  .cx-close {
+    background: transparent;
+    border: none;
+    color: var(--cx-text-muted);
+    cursor: pointer;
+    padding: 8px;
+    margin: -8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+  }
+  .cx-close:hover {
+    background: var(--cx-gray-bg);
+    color: var(--cx-text);
+  }
+
+  /* Messages Area */
+  .cx-messages {
+    flex-grow: 1;
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background-color: var(--cx-bg);
+    scrollbar-width: thin;
+    scrollbar-color: var(--cx-border) transparent;
+  }
+  .cx-messages::-webkit-scrollbar {
+    width: 6px;
+  }
+  .cx-messages::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .cx-messages::-webkit-scrollbar-thumb {
+    background-color: var(--cx-border);
+    border-radius: 10px;
+  }
+
+  /* Message Rows */
+  .cx-msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 100%;
+    animation: cx-slide-up 0.3s ease forwards;
+  }
+  .cx-msg-user {
+    justify-content: flex-end;
+  }
+  .cx-msg-bot {
+    justify-content: flex-start;
+  }
+  
+  /* Bot Avatar */
+  .cx-msg-bot .cx-msg-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    background: var(--cx-brand-light);
+    color: var(--cx-brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-bottom: 4px;
+  }
+
+  /* Bubbles */
+  .cx-bubble {
+    padding: 12px 16px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    max-width: 85%;
+    word-wrap: break-word;
+  }
+  .cx-bubble p {
+    margin: 0;
+  }
+  .cx-msg-user .cx-bubble {
+    background: var(--cx-brand);
+    color: #ffffff;
+    border-radius: 20px 20px 4px 20px;
+    box-shadow: 0 2px 8px rgba(107, 33, 168, 0.15);
+  }
+  .cx-msg-bot .cx-bubble {
+    background: var(--cx-gray-bg);
+    color: var(--cx-text);
+    border-radius: 20px 20px 20px 4px;
+  }
+
+  /* Product Carousel */
+  .cx-carousel {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 8px;
+    margin-top: 8px;
+    margin-left: 32px; /* align with bot message text */
+    max-width: calc(100% - 32px);
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .cx-carousel::-webkit-scrollbar {
+    display: none;
+  }
+  .cx-card {
+    flex: 0 0 160px;
+    background: var(--cx-bg);
+    border: 1px solid var(--cx-border);
+    border-radius: 16px;
+    overflow: hidden;
+    scroll-snap-align: start;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+  }
+  .cx-card:hover {
+    border-color: var(--cx-brand);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .cx-card-img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    background: var(--cx-gray-bg);
+  }
+  .cx-card-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+  .cx-card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cx-text);
+    margin: 0 0 4px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .cx-card-price {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cx-text);
+    margin-top: auto;
+  }
+  .cx-card-badges {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .cx-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    background: var(--cx-brand-light);
+    color: var(--cx-brand);
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  /* Quick Replies */
+  .cx-quick-replies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: 32px;
+    margin-top: 8px;
+  }
+  .cx-chip {
+    background: var(--cx-bg);
+    border: 1px solid var(--cx-brand);
+    color: var(--cx-brand);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .cx-chip:hover {
+    background: var(--cx-brand);
+    color: #ffffff;
+  }
+
+  /* Input Area */
+  .cx-footer {
+    padding: 16px 24px 20px 24px;
+    background: var(--cx-bg);
+    border-top: 1px solid var(--cx-border);
+    border-radius: 0 0 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  
+  .cx-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--cx-gray-bg);
+    border-radius: 28px;
+    padding: 6px 6px 6px 20px;
+    box-shadow: inset 0 0 0 1px transparent;
+    transition: box-shadow 0.2s, background 0.2s;
+  }
+  .cx-input-wrapper:focus-within {
+    background: var(--cx-bg);
+    box-shadow: inset 0 0 0 1px var(--cx-brand), 0 0 0 4px var(--cx-brand-light);
+  }
+  .cx-input {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 14.5px;
+    color: var(--cx-text);
+    font-family: inherit;
+    padding: 8px 0;
+  }
+  .cx-input::placeholder {
+    color: var(--cx-text-muted);
+  }
+  .cx-send {
+    background: var(--cx-brand);
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+  .cx-send:hover:not(:disabled) {
+    background: var(--cx-brand-hover);
+  }
+  .cx-send:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+  .cx-send:disabled {
+    background: var(--cx-text-muted);
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .cx-powered-by {
+    text-align: center;
+    font-size: 11px;
+    color: var(--cx-text-muted);
+    font-weight: 500;
+  }
+
+  /* Typing Indicator */
+  .cx-typing {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 32px;
+    font-size: 12px;
+    color: var(--cx-text-muted);
+    font-weight: 500;
+  }
+  .cx-dots {
+    display: flex;
+    gap: 4px;
+  }
+  .cx-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--cx-text-muted);
+    animation: cx-bounce 1.4s infinite ease-in-out both;
+  }
+  .cx-dot:nth-child(1) { animation-delay: -0.32s; }
+  .cx-dot:nth-child(2) { animation-delay: -0.16s; }
+  
+  /* Animations */
+  @keyframes cx-slide-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes cx-bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 480px) {
+    .cx-widget {
+      bottom: 0;
+      right: 0;
+      width: 100%;
+      height: 85vh; /* Acts like a bottom sheet */
+      max-height: 85vh;
+      border-radius: 24px 24px 0 0;
+      transform-origin: bottom center;
+    }
+    .cx-widget.cx-closed {
+      transform: translateY(100%);
+    }
+    .cx-trigger {
+      bottom: 20px;
+      right: 20px;
+    }
+    .cx-footer {
+      border-radius: 0;
+      padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
+  }
 </style>
 
 <script>
-  // Setup session IDs and UI elements
-  document.getElementById('ai-chat-widget-container').classList.remove('closed');
-
-  const chatMessages = document.getElementById('chat-messages');
-  const chatInput = document.getElementById('chat-input');
-  const sendBtn = document.getElementById('send-btn');
-
-  // Simple Session ID generator
-  let sessionId = sessionStorage.getItem('chat_session_id');
-  if (!sessionId) {
-    sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-    sessionStorage.setItem('chat_session_id', sessionId);
-  }
-  const userId = 'anonymous_user';
-
-  // Config: Set your actual WS URL here if deploying
-  // Example: wss://abc-123.ngrok-free.app/ws (Must match local Gateway server)
-  const WS_URL = 'wss://redressable-spectrochemical-aarav.ngrok-free.dev/ws';
-
-  let ws = null;
-  let currentBotMessageDiv = null;
-
-  function connectWebSocket() {
-    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-      return;
-    }
-
-    ws = new WebSocket(WS_URL);
-
-    ws.onopen = () => {
-      console.log('Connected to Chatbot Server');
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        // Handle streaming text chunks
-        if (data.type === 'bot_text_delta') {
-          if (!currentBotMessageDiv) {
-             currentBotMessageDiv = appendMessage('', 'bot');
-          }
-          currentBotMessageDiv.innerText += data.payload.delta;
-          chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Handle product cards
-        if (data.type === 'bot_cards' && data.payload.cards && data.payload.cards.length > 0) {
-          appendProductCards(data.payload.cards);
-        }
-
-        // Handle end of turn
-        if (data.type === 'bot_done') {
-          currentBotMessageDiv = null; // Reset for next message
-        }
-
-        if (data.type === 'bot_error') {
-           appendMessage('Server: ' + data.payload.message, 'bot');
-           currentBotMessageDiv = null;
-        }
-
-      } catch (err) {
-        console.error('Error parsing WS message:', err);
+  (function() {
+    // ----------------------------------------------------
+    // Element Selectors
+    // ----------------------------------------------------
+    const triggerBtn = document.getElementById('cx-trigger');
+    const widgetPanel = document.getElementById('cx-widget');
+    const closeBtn = document.getElementById('cx-close');
+    const messagesContainer = document.getElementById('cx-messages');
+    const form = document.getElementById('cx-form');
+    const input = document.getElementById('cx-input');
+    const sendBtn = document.getElementById('cx-send');
+    const typingIndicator = document.getElementById('cx-typing');
+    const initialQuickReplies = document.getElementById('cx-initial-quick-replies');
+    
+    // ----------------------------------------------------
+    // Widget Toggle Logic
+    // ----------------------------------------------------
+    function toggleWidget() {
+      const isClosed = widgetPanel.classList.contains('cx-closed');
+      if (isClosed) {
+        // Open
+        widgetPanel.classList.remove('cx-closed');
+        triggerBtn.classList.add('cx-active');
+        setTimeout(() => input.focus(), 300); // Focus input after animation
+      } else {
+        // Close
+        widgetPanel.classList.add('cx-closed');
+        triggerBtn.classList.remove('cx-active');
       }
-    };
+    }
 
-    ws.onclose = () => {
-      console.log('Disconnected from Chatbot Server. Reconnecting...');
-      setTimeout(connectWebSocket, 3000);
-    };
+    triggerBtn.addEventListener('click', toggleWidget);
+    closeBtn.addEventListener('click', toggleWidget);
 
-    ws.onerror = (error) => {
-      console.error('WebSocket Error:', error);
-    };
-  }
-
-  // Initialize Connection
-  connectWebSocket();
-
-  function appendMessage(text, sender) {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = sender === 'user' ? 'user-msg' : 'bot-msg';
-    msgDiv.innerText = text;
-    chatMessages.appendChild(msgDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    return msgDiv;
-  }
-
-  function appendProductCards(cards) {
-    const containerDiv = document.createElement('div');
-    containerDiv.className = 'bot-msg';
-    
-    let html = '<strong>Recommended for you:</strong><br/>';
-    cards.forEach(card => {
-       html += `
-         <div style="border:1px solid #ddd; padding: 5px; margin-top:5px; border-radius:5px;">
-           <img src="${card.image_url}" alt="${card.title}" style="max-width: 100%; height: auto; border-radius: 4px;" />
-           <div style="font-weight: bold; margin-top:5px;">${card.title}</div>
-           <div>${card.currency} ${card.price}</div>
-           ${card.color ? `<div style="font-size: 0.8em; color: #666;">Color: ${card.color}</div>` : ''}
-         </div>
-       `;
+    // Input behavior
+    input.addEventListener('input', () => {
+      sendBtn.disabled = input.value.trim() === '';
     });
-    
-    containerDiv.innerHTML = html;
-    chatMessages.appendChild(containerDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }
 
-  sendBtn.addEventListener('click', () => {
-    const message = chatInput.value.trim();
-    if (!message) return;
-
-    // Show user message
-    appendMessage(message, 'user');
-    chatInput.value = '';
-
-    // Send payload to backend
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: 'user_message',
-        session_id: sessionId,
-        user_id: userId,
-        route: 'BEDROCK',
-        text: message
-      }));
-    } else {
-      appendMessage("Not connected to server. Attempting to reconnect...", 'bot');
-      connectWebSocket();
+    // ----------------------------------------------------
+    // Chat Logic & WebSocket
+    // ----------------------------------------------------
+    let sessionId = sessionStorage.getItem('cx_session_id');
+    if (!sessionId) {
+      sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+      sessionStorage.setItem('cx_session_id', sessionId);
     }
-  });
+    let userId = 'anonymous_user';
 
-  chatInput.addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-      sendBtn.click();
+    // Must match local Gateway server
+    const WS_URL = 'wss://redressable-spectrochemical-aarav.ngrok-free.dev/ws';
+    let ws = null;
+    let currentBotMessageBubble = null;
+
+    function connectWebSocket() {
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
+      ws = new WebSocket(WS_URL);
+      
+      ws.onopen = () => {
+        console.log('[ChatX] Connected to Server');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('[ChatX WS Received]:', data);
+          
+          if (data.type === 'bot_text_delta') {
+            hideTyping();
+            if (!currentBotMessageBubble) {
+               currentBotMessageBubble = createBotMessageRow();
+            }
+            appendMarkdown(currentBotMessageBubble, data.payload.delta);
+            scrollToBottom();
+          }
+
+          if (data.type === 'bot_quick_replies' && data.payload.options) {
+            hideTyping();
+            appendQuickReplies(data.payload.options);
+            scrollToBottom();
+          }
+
+          if (data.type === 'bot_cards' && data.payload.cards && data.payload.cards.length > 0) {
+            hideTyping();
+            appendProductCarousel(data.payload.cards);
+            scrollToBottom();
+          }
+
+          if (data.type === 'bot_done') {
+            currentBotMessageBubble = null;
+            // E.g., render quick replies here if provided in the future data payloads
+          }
+
+          if (data.type === 'bot_error') {
+             hideTyping();
+             appendErrorMessage(data.payload.message || 'An error occurred.');
+             currentBotMessageBubble = null;
+             scrollToBottom();
+          }
+
+        } catch (err) {
+          console.error('[ChatX] Error parsing msg:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        setTimeout(connectWebSocket, 3000);
+      };
     }
-  });
+
+    connectWebSocket();
+
+    // ----------------------------------------------------
+    // UI Render Helpers
+    // ----------------------------------------------------
+    function showTyping() {
+      typingIndicator.classList.remove('cx-hidden');
+      scrollToBottom();
+    }
+
+    function hideTyping() {
+      typingIndicator.classList.add('cx-hidden');
+    }
+
+    function scrollToBottom() {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function createUserMessageRow(text) {
+      const row = document.createElement('div');
+      row.className = 'cx-msg-row cx-msg-user';
+      row.innerHTML = `<div class="cx-bubble"><p>${escapeHTML(text)}</p></div>`;
+      messagesContainer.appendChild(row);
+      return row;
+    }
+
+    // Bot SVG avatar string
+    const botAvatarSVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></svg>`;
+
+    function createBotMessageRow() {
+      const row = document.createElement('div');
+      row.className = 'cx-msg-row cx-msg-bot';
+      
+      const avatar = document.createElement('div');
+      avatar.className = 'cx-msg-avatar';
+      avatar.innerHTML = botAvatarSVG;
+      
+      const bubble = document.createElement('div');
+      bubble.className = 'cx-bubble';
+      bubble.innerHTML = '<p></p>'; // target for text
+      
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      
+      messagesContainer.appendChild(row);
+      return bubble.querySelector('p'); // return paragraph to append text
+    }
+
+    function appendErrorMessage(text) {
+      const p = createBotMessageRow();
+      p.parentElement.style.background = '#fee2e2'; // Light red
+      p.parentElement.style.color = '#991b1b'; // Dark red
+      p.textContent = text;
+    }
+
+    function appendMarkdown(element, textChunk) {
+      // Basic rendering: replace standard newlines with <br>
+      // For streaming text, we simply append the text. In a prod setup, use a real markdown parser.
+      // We avoid aggressive escaping chunk-by-chunk because it can truncate midway through an entity.
+      const parsedText = textChunk.replace(/\n/g, '<br/>');
+      element.innerHTML += parsedText;
+    }
+
+    function appendQuickReplies(options) {
+      if (!options || !options.length) return;
+      
+      const container = document.createElement('div');
+      container.className = 'cx-quick-replies';
+      container.style.animation = 'cx-slide-up 0.5s ease forwards';
+      
+      options.forEach(opt => {
+        // opt might be a string or an object with a label property
+        const text = typeof opt === 'string' ? opt : (opt.title || opt.label || opt.value || JSON.stringify(opt));
+        const btn = document.createElement('button');
+        btn.className = 'cx-chip';
+        btn.innerText = text;
+        btn.addEventListener('click', () => {
+          container.style.display = 'none'; // hide initials
+          sendMessage(text);
+        });
+        container.appendChild(btn);
+      });
+      
+      messagesContainer.appendChild(container);
+    }
+
+    function appendProductCarousel(cards) {
+      const carousel = document.createElement('div');
+      carousel.className = 'cx-carousel';
+      carousel.style.animation = 'cx-slide-up 0.5s ease forwards';
+      
+      let html = '';
+      cards.forEach(card => {
+        // Handle might be used for link
+        const link = card.handle ? `/products/${card.handle}` : '#';
+        const imgUrl = card.imageUrl || card.image_url || '';
+        
+        let priceStr = '';
+        if (card.variants && card.variants.length > 0 && card.variants[0].price) {
+           priceStr = `$${card.variants[0].price}`;
+        } else if (card.price) {
+           priceStr = card.currency ? `${card.currency}${card.price}` : `$${card.price}`;
+        }
+
+        let tagsHtml = '';
+        if (card.productType) {
+           tagsHtml += `<span class="cx-badge">${card.productType}</span>`;
+        }
+        if (card.color) {
+           tagsHtml += `<span class="cx-badge">${card.color}</span>`;
+        }
+        if (card.tags && Array.isArray(card.tags)) {
+           card.tags.forEach(t => tagsHtml += `<span class="cx-badge">${t}</span>`);
+        }
+
+        html += `
+          <a href="${link}" target="_blank" class="cx-card">
+            <img class="cx-card-img" src="${imgUrl}" alt="${card.title}" loading="lazy" />
+            <div class="cx-card-body">
+              <h3 class="cx-card-title">${card.title}</h3>
+              <div class="cx-card-price">${priceStr}</div>
+              <div class="cx-card-badges">${tagsHtml}</div>
+            </div>
+          </a>
+        `;
+      });
+      
+      carousel.innerHTML = html;
+      messagesContainer.appendChild(carousel);
+    }
+
+    // Quick Replies Binding
+    document.querySelectorAll('.cx-chip').forEach(chip => {
+      chip.addEventListener('click', function() {
+        if (initialQuickReplies) initialQuickReplies.style.display = 'none'; // hide initials
+        sendMessage(this.innerText);
+      });
+    });
+
+    // ----------------------------------------------------
+    // Sending Messages
+    // ----------------------------------------------------
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const message = input.value.trim();
+      if (!message) return;
+      
+      if (initialQuickReplies) initialQuickReplies.style.display = 'none';
+      sendMessage(message);
+      
+      input.value = '';
+      sendBtn.disabled = true;
+    });
+
+    function sendMessage(text) {
+      createUserMessageRow(text);
+      scrollToBottom();
+      showTyping();
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'user_message',
+          session_id: sessionId,
+          user_id: userId,
+          route: 'BEDROCK',
+          text: text
+        }));
+      } else {
+        hideTyping();
+        appendErrorMessage('Not connected to server. Attempting to reconnect...');
+        connectWebSocket();
+      }
+    }
+
+    // Utilities
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+          }[tag] || tag)
+      );
+    }
+
+  })();
 </script>
 
 {% schema %}
 {
-  "name": "AI Chatbot Widget",
+  "name": "Chat Widget",
   "target": "body",
-  "settings": []
+  "settings": [
+    {
+      "type": "color",
+      "id": "brand_color",
+      "label": "Brand Color",
+      "default": "#7c3aed"
+    }
+  ]
 }
 {% endschema %}
