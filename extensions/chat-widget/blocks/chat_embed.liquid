@@ -1,5 +1,5 @@
-<div id="cx-app" style="--cx-brand: #6b21a8; --cx-brand-light: #f3e8ff; --cx-brand-hover: #581c87; --cx-bg: #ffffff; --cx-text: #1a1a1a; --cx-text-muted: #6b7280; --cx-gray-bg: #f3f4f6; --cx-border: #e5e7eb;">
-  
+<div id="cx-app" style="--cx-brand: #1a1a1a; --cx-brand-light: #f3f4f6; --cx-brand-hover: #000000; --cx-bg: #ffffff; --cx-text: #1a1a1a; --cx-text-muted: #6b7280; --cx-gray-bg: #f3f4f6; --cx-border: #e5e7eb;">
+ <!--  old theme <div id="cx-app" style="--cx-brand: #6b21a8; --cx-brand-light: #f3e8ff; --cx-brand-hover: #581c87; --cx-bg: #ffffff; --cx-text: #1a1a1a; --cx-text-muted: #6b7280; --cx-gray-bg: #f3f4f6; --cx-border: #e5e7eb;">--> 
   <!-- Trigger Button -->
   <button id="cx-trigger" class="cx-trigger" aria-label="Open AI Shopping Assistant">
     <div class="cx-trigger-icon">
@@ -53,7 +53,7 @@
       
       <!-- Quick Replies Initial Example (Dynamic setup later) -->
       <div class="cx-quick-replies" id="cx-initial-quick-replies">
-         <button class="cx-chip">Browse Tops</button>
+         <button class="cx-chip">Browse Sneakers</button>
          <button class="cx-chip">Track Order</button>
       </div>
     </div>
@@ -296,7 +296,23 @@
     word-wrap: break-word;
   }
   .cx-bubble p {
-    margin: 0;
+    margin: 0 0 8px 0;
+  }
+  .cx-bubble p:last-child {
+    margin-bottom: 0;
+  }
+  .cx-bubble ul, .cx-bubble ol {
+    margin: 4px 0 8px 0;
+    padding-left: 20px;
+  }
+  .cx-bubble ul:last-child, .cx-bubble ol:last-child {
+    margin-bottom: 0;
+  }
+  .cx-bubble li {
+    margin-bottom: 4px;
+  }
+  .cx-bubble strong {
+    font-weight: 600;
   }
   .cx-msg-user .cx-bubble {
     background: var(--cx-brand);
@@ -454,20 +470,33 @@
     padding: 6px 6px 6px 20px;
     box-shadow: inset 0 0 0 1px transparent;
     transition: box-shadow 0.2s, background 0.2s;
+    border: none !important;
+    outline: none !important;
   }
   .cx-input-wrapper:focus-within {
     background: var(--cx-bg);
-    box-shadow: inset 0 0 0 1px var(--cx-brand), 0 0 0 4px var(--cx-brand-light);
+    box-shadow: inset 0 0 0 1px var(--cx-brand), 0 0 0 4px var(--cx-brand-light) !important;
+    border: none !important;
+    outline: none !important;
   }
   .cx-input {
     flex-grow: 1;
-    border: none;
-    background: transparent;
-    outline: none;
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
     font-size: 14.5px;
     color: var(--cx-text);
     font-family: inherit;
     padding: 8px 0;
+  }
+  .cx-input:focus,
+  .cx-input:active,
+  .cx-input:focus-visible {
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
   }
   .cx-input::placeholder {
     color: var(--cx-text-muted);
@@ -565,6 +594,9 @@
   }
 </style>
 
+<!-- Load Marked.js for Markdown parsing -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+
 <script>
   (function() {
     // ----------------------------------------------------
@@ -619,6 +651,7 @@
     const WS_URL = 'wss://redressable-spectrochemical-aarav.ngrok-free.dev/ws';
     let ws = null;
     let currentBotMessageBubble = null;
+    let currentBotMessageText = '';
 
     function connectWebSocket() {
       if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
@@ -639,8 +672,15 @@
             hideTyping();
             if (!currentBotMessageBubble) {
                currentBotMessageBubble = createBotMessageRow();
+               currentBotMessageText = '';
             }
-            appendMarkdown(currentBotMessageBubble, data.payload.delta);
+            currentBotMessageText += data.payload.delta || '';
+            
+            if (typeof marked !== 'undefined') {
+              currentBotMessageBubble.innerHTML = marked.parse(currentBotMessageText, { breaks: true });
+            } else {
+              currentBotMessageBubble.innerHTML = '<p>' + currentBotMessageText.replace(/\n/g, '<br/>') + '</p>';
+            }
             scrollToBottom();
           }
 
@@ -658,6 +698,7 @@
 
           if (data.type === 'bot_done') {
             currentBotMessageBubble = null;
+            currentBotMessageText = '';
             // E.g., render quick replies here if provided in the future data payloads
           }
 
@@ -665,6 +706,7 @@
              hideTyping();
              appendErrorMessage(data.payload.message || 'An error occurred.');
              currentBotMessageBubble = null;
+             currentBotMessageText = '';
              scrollToBottom();
           }
 
@@ -716,29 +758,20 @@
       avatar.innerHTML = botAvatarSVG;
       
       const bubble = document.createElement('div');
-      bubble.className = 'cx-bubble';
-      bubble.innerHTML = '<p></p>'; // target for text
+      bubble.className = 'cx-bubble cx-markdown';
       
       row.appendChild(avatar);
       row.appendChild(bubble);
       
       messagesContainer.appendChild(row);
-      return bubble.querySelector('p'); // return paragraph to append text
+      return bubble;
     }
 
     function appendErrorMessage(text) {
-      const p = createBotMessageRow();
-      p.parentElement.style.background = '#fee2e2'; // Light red
-      p.parentElement.style.color = '#991b1b'; // Dark red
-      p.textContent = text;
-    }
-
-    function appendMarkdown(element, textChunk) {
-      // Basic rendering: replace standard newlines with <br>
-      // For streaming text, we simply append the text. In a prod setup, use a real markdown parser.
-      // We avoid aggressive escaping chunk-by-chunk because it can truncate midway through an entity.
-      const parsedText = textChunk.replace(/\n/g, '<br/>');
-      element.innerHTML += parsedText;
+      const bubble = createBotMessageRow();
+      bubble.style.background = '#fee2e2'; // Light red
+      bubble.style.color = '#991b1b'; // Dark red
+      bubble.innerHTML = '<p>' + escapeHTML(text) + '</p>';
     }
 
     function appendQuickReplies(options) {
