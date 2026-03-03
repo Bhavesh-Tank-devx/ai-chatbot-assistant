@@ -330,17 +330,16 @@
   .cx-carousel {
     display: flex;
     overflow-x: auto;
-    overflow-y: hidden; /* Hide vertical overflow rather than being visible, prevents weird vertical shifts */
+    overflow-y: hidden;
     gap: 12px;
-    /* Add padding to account for box shadows (assuming max 10px shadow) */
-    padding: 12px 12px 16px 12px; 
+    padding: 12px 12px 16px 12px;
     margin-top: 8px;
-    margin-left: 20px; /* Align closer to the message to make room for padding */
-    margin-right: -24px; /* Allow scrolling all the way to the right edge of widget */
+    margin-left: 20px;
+    margin-right: -24px;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    min-height: 350px; /* Base height + padding */
+    min-height: 436px; /* card 420px + 16px padding */
     align-items: stretch;
   }
   .cx-carousel::-webkit-scrollbar {
@@ -349,7 +348,7 @@
   .cx-card {
     flex: 0 0 200px; /* Explicit width to prevent shrinking */
     width: 200px;
-    height: 340px; /* Explicit height */
+    height: 420px; /* Increased to fit size pills + Add to Cart button */
     background: var(--cx-bg);
     border: 1px solid var(--cx-border);
     border-radius: 12px;
@@ -382,6 +381,7 @@
     gap: 6px;
     flex-grow: 1;
     min-height: 140px;
+    overflow: hidden; /* prevent body overflow */
   }
   .cx-card-title {
     font-size: 13px;
@@ -409,6 +409,75 @@
     max-height: 44px;
     overflow: hidden;
   }
+
+  /* Size dropdown inside product cards */
+  .cx-size-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .cx-size-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cx-text-muted);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .cx-size-select {
+    flex: 1;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: var(--cx-bg);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    border: 1.5px solid var(--cx-border);
+    border-radius: 8px;
+    padding: 6px 28px 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cx-text);
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    min-width: 0;
+  }
+  .cx-size-select:focus {
+    outline: none;
+    border-color: var(--cx-brand);
+    box-shadow: 0 0 0 3px var(--cx-brand-light);
+  }
+  .cx-size-select option:disabled {
+    color: var(--cx-text-muted);
+  }
+
+  /* Add to Cart button on product cards */
+  .cx-card-atc-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 0;
+    margin-top: auto; /* push to bottom of flex card body */
+    background: var(--cx-brand);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+  .cx-card-atc-btn:hover {
+    opacity: 0.85;
+  }
+  .cx-card-atc-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
   .cx-checkout-card {
     background: var(--cx-bg);
     border: 1.5px solid var(--cx-brand);
@@ -416,12 +485,13 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    max-width: 220px;
+    width: 200px;          /* same as cx-card */
+    flex-shrink: 0;
     animation: cx-slide-up 0.4s ease forwards;
   }
   .cx-checkout-card-img {
     width: 100%;
-    height: 160px;
+    height: 200px;         /* taller image to fill the larger card */
     object-fit: cover;
     background: var(--cx-gray-bg);
     display: block;
@@ -439,6 +509,12 @@
     color: var(--cx-text);
     margin: 0;
     line-height: 1.3;
+  }
+  .cx-checkout-card-size {
+    font-size: 11px;
+    color: var(--cx-text-muted);
+    font-weight: 500;
+    margin: 0;
   }
   .cx-checkout-card-price {
     font-size: 14px;
@@ -653,6 +729,17 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
 
 <script>
+  // ─── Pure Utility: extract size label from Shopify variant title ─────────────
+  // Shopify joins all option values with " / " (e.g. "Lows Black / 7").
+  // We want only the last segment, stripped of any " (N)" dedup suffixes.
+  // Placed at module scope so it is defined once and reused everywhere (DRY / SRP).
+  function cxGetSizeLabel(fullTitle) {
+    if (!fullTitle) return '';
+    const parts = String(fullTitle).split(' / ');
+    const last = parts[parts.length - 1].trim();
+    return last.replace(/\s*\(\d+\)$/, '').trim();
+  }
+
   (function() {
     // ----------------------------------------------------
     // Element Selectors
@@ -863,58 +950,161 @@
       const carousel = document.createElement('div');
       carousel.className = 'cx-carousel';
       carousel.style.animation = 'cx-slide-up 0.5s ease forwards';
-      
-      let html = '';
+
       cards.forEach((card, i) => {
         console.log(`[ChatX] Processing card ${i}:`, card);
-        // Fallback checks tailored to the BotCard typescript interface + previous version checks
         const link = card.product_url ? card.product_url : (card.handle ? `/products/${card.handle}` : '#');
         const imgUrl = card.image_url || card.imageUrl || '';
-        
-        // Ensure price handles 0 correctly
-        let priceStr = '';
-        if (card.variants && card.variants.length > 0 && card.variants[0].price !== undefined) {
-           priceStr = `$${card.variants[0].price}`;
-        } else if (card.price !== undefined) {
-           priceStr = card.currency ? `${card.currency} ${card.price}` : `$${card.price}`;
-        }
-
-        let tagsHtml = '';
-        if (card.badges && Array.isArray(card.badges)) {
-           card.badges.forEach(b => tagsHtml += `<span class="cx-badge">${b}</span>`);
-        } else {
-           // Fallbacks
-           if (card.productType) tagsHtml += `<span class="cx-badge">${card.productType}</span>`;
-           if (card.color) tagsHtml += `<span class="cx-badge">${card.color}</span>`;
-           if (card.tags && Array.isArray(card.tags)) card.tags.forEach(t => tagsHtml += `<span class="cx-badge">${t}</span>`);
-        }
-        
-        if (card.is_stretch_budget) {
-           tagsHtml += `<span class="cx-badge" style="background:#fef08a;color:#854d0e;">Over Budget</span>`;
-        }
-
         const title = card.title || 'Recommended Item';
 
-        html += `
-          <a href="${link}" target="_blank" class="cx-card">
-            <img class="cx-card-img" src="${imgUrl}" alt="${title}" loading="lazy" onerror="this.src='https://cdn.shopify.com/s/images/admin/no-image-large.gif';" />
-            <div class="cx-card-body">
-              <h3 class="cx-card-title">${title}</h3>
-              <div class="cx-card-price">${priceStr}</div>
-              <div class="cx-card-badges">${tagsHtml}</div>
-            </div>
-          </a>
+        // Price string
+        let priceStr = '';
+        if (card.price !== undefined) {
+          priceStr = card.currency ? `${card.currency} ${card.price}` : `$${card.price}`;
+        }
+
+        // Badges
+        let tagsHtml = '';
+        if (card.badges && Array.isArray(card.badges)) {
+          card.badges.forEach(b => tagsHtml += `<span class="cx-badge">${b}</span>`);
+        } else {
+          if (card.productType) tagsHtml += `<span class="cx-badge">${card.productType}</span>`;
+          if (card.color) tagsHtml += `<span class="cx-badge">${card.color}</span>`;
+        }
+        if (card.is_stretch_budget) {
+          tagsHtml += `<span class="cx-badge" style="background:#fef08a;color:#854d0e;">Over Budget</span>`;
+        }
+
+        // Build the card anchor element
+        const cardEl = document.createElement('a');
+        cardEl.href = link;
+        cardEl.target = '_blank';
+        cardEl.className = 'cx-card';
+
+        // --- Image ---
+        const imgEl = document.createElement('img');
+        imgEl.className = 'cx-card-img';
+        imgEl.src = imgUrl;
+        imgEl.alt = title;
+        imgEl.loading = 'lazy';
+        imgEl.onerror = function() { this.src = 'https://cdn.shopify.com/s/images/admin/no-image-large.gif'; };
+        cardEl.appendChild(imgEl);
+
+        // --- Body ---
+        const bodyEl = document.createElement('div');
+        bodyEl.className = 'cx-card-body';
+
+        bodyEl.innerHTML = `
+          <h3 class="cx-card-title">${title}</h3>
+          <div class="cx-card-price">${priceStr}</div>
+          <div class="cx-card-badges">${tagsHtml}</div>
         `;
+
+        // --- Size selector + Add to Cart (if variants present) ---
+        const hasVariants = Array.isArray(card.variants) && card.variants.length > 0;
+
+        if (hasVariants) {
+          // Deduplicate variants by their short display label (SRP: cxGetSizeLabel is the single
+          // authority for label extraction; this block is only responsible for dedup + rendering).
+          const availableVariants = card.variants.filter(v => v.availableForSale);
+          let selectedVariantId = availableVariants.length > 0
+            ? availableVariants[0].id
+            : card.variants[0].id;
+
+          const seenLabels = new Set();
+          const uniqueVariants = card.variants.filter(v => {
+            const label = cxGetSizeLabel(v.title);
+            if (seenLabels.has(label)) return false;
+            seenLabels.add(label);
+            return true;
+          });
+
+          // --- Size row: "Size" label + <select> dropdown ---
+          const sizeRow = document.createElement('div');
+          sizeRow.className = 'cx-size-row';
+
+          const sizeLabel = document.createElement('span');
+          sizeLabel.className = 'cx-size-label';
+          sizeLabel.textContent = 'Size';
+
+          const sizeSelect = document.createElement('select');
+          sizeSelect.className = 'cx-size-select';
+          sizeSelect.setAttribute('aria-label', 'Select size');
+
+          uniqueVariants.forEach(variant => {
+            const displayLabel = cxGetSizeLabel(variant.title);
+            const opt = document.createElement('option');
+            opt.value = variant.id;
+            opt.textContent = variant.availableForSale
+              ? displayLabel
+              : `${displayLabel} – sold out`;
+            opt.disabled = !variant.availableForSale;
+            if (variant.id === selectedVariantId) opt.selected = true;
+            sizeSelect.appendChild(opt);
+          });
+
+          // When the user changes the dropdown, update the tracked variant ID.
+          sizeSelect.addEventListener('change', function(e) {
+            // Stop the event from bubbling to the card's <a> tag
+            e.stopPropagation();
+            selectedVariantId = this.value;
+          });
+          // Prevent the card link from opening when the user opens the dropdown
+          sizeSelect.addEventListener('click', e => e.preventDefault());
+
+          sizeRow.appendChild(sizeLabel);
+          sizeRow.appendChild(sizeSelect);
+          bodyEl.appendChild(sizeRow);
+
+          // --- Add to Cart button ---
+          const atcBtn = document.createElement('button');
+          atcBtn.className = 'cx-card-atc-btn';
+          atcBtn.textContent = availableVariants.length === 0 ? 'Out of Stock' : 'Add to Cart';
+          atcBtn.disabled = availableVariants.length === 0;
+
+          if (availableVariants.length > 0) {
+            atcBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+
+              const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
+              const chosenLabel = selectedOption ? cxGetSizeLabel(selectedOption.textContent) : '';
+
+              if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                  type: 'checkout_request',
+                  session_id: sessionId,
+                  user_id: userId,
+                  variant_id: selectedVariantId,
+                  product_title: title,
+                  size_label: chosenLabel,
+                  quantity: 1,
+                  price: card.price,
+                  currency: card.currency,
+                  image_url: imgUrl,
+                }));
+                showTyping();
+              } else {
+                appendErrorMessage('Not connected. Please try again.');
+                connectWebSocket();
+              }
+            });
+          }
+
+          bodyEl.appendChild(atcBtn);
+        }
+
+        cardEl.appendChild(bodyEl);
+        carousel.appendChild(cardEl);
       });
-      
-      console.log('[ChatX] Generated HTML string for carousel:', html);
-      carousel.innerHTML = html;
+
       messagesContainer.appendChild(carousel);
       scrollToBottom();
     }
 
+
     function appendCheckoutCard(payload) {
-      const { product_title, price, currency, image_url, checkout_url } = payload;
+      const { product_title, price, currency, image_url, checkout_url, size_label } = payload;
 
       const row = document.createElement('div');
       row.className = 'cx-msg-row cx-msg-bot';
@@ -934,10 +1124,15 @@
         ? `<img class="cx-checkout-card-img" src="${image_url}" alt="${escapeHTML(product_title || '')}" loading="lazy" onerror="this.src='https://cdn.shopify.com/s/images/admin/no-image-large.gif';" />`
         : '';
 
+      const sizeHtml = size_label
+        ? `<div class="cx-checkout-card-size">Size: ${escapeHTML(size_label)}</div>`
+        : '';
+
       card.innerHTML = `
         ${imgHtml}
         <div class="cx-checkout-card-body">
           <div class="cx-checkout-card-title">${escapeHTML(product_title || 'Your item')}</div>
+          ${sizeHtml}
           ${priceStr ? `<div class="cx-checkout-card-price">${escapeHTML(priceStr)}</div>` : ''}
           <a href="${checkout_url}" target="_blank" rel="noopener noreferrer" class="cx-checkout-btn">Checkout →</a>
         </div>
